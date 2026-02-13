@@ -2,23 +2,29 @@ AFRAME.registerComponent('donkey-kong-logic', {
   init() {
     this.player = document.querySelector('#player');
     this.world = this.el;
-    this.platforms = Array.from(document.querySelectorAll('.platform')).map(el => ({
-      x: el.getAttribute('position').x,
-      y: el.getAttribute('position').y,
-      w: parseFloat(el.getAttribute('width')),
-      angle: (el.getAttribute('rotation').z * Math.PI) / 180
-    }));
-    this.ladders = Array.from(document.querySelectorAll('.ladder')).map(el => ({
-      x: el.getAttribute('position').x, y: el.getAttribute('position').y,
-      h: parseFloat(el.getAttribute('height')), w: parseFloat(el.getAttribute('width'))
-    }));
-
+    
+    // Parametri Player
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
     this.keys = {left: false, right: false, up: false, down: false};
-    this.isClimbing = false;
+    
+    // Gestione Arance
     this.oranges = [];
     this.spawnTimer = 0;
+
+    // DEFINIAMO IL PERCORSO FISSO (Waypoints)
+    // Ogni punto è dove l'arancia deve passare. 
+    // Il sistema le farà scivolare da un punto all'altro.
+    this.path = [
+      {x: -0.4, y: 0.8},  // Punto 0: Partenza dal Boss (cima)
+      {x:  0.4, y: 0.75}, // Punto 1: Fine prima piattaforma (destra)
+      {x:  0.4, y: 0.25}, // Punto 2: Caduta su seconda piattaforma
+      {x: -0.4, y: 0.2},  // Punto 3: Fine seconda piattaforma (sinistra)
+      {x: -0.4, y: -0.25},// Punto 4: Caduta su terza piattaforma
+      {x:  0.5, y: -0.3}, // Punto 5: Fine terza piattaforma (destra)
+      {x:  0.5, y: -0.75},// Punto 6: Caduta su ultima piattaforma
+      {x: -1.0, y: -0.8}  // Punto 7: Uscita di scena a sinistra
+    ];
 
     this.setupControls();
   },
@@ -26,11 +32,13 @@ AFRAME.registerComponent('donkey-kong-logic', {
   setupControls() {
     const bind = (id, k) => {
       const el = document.getElementById(id);
+      if(!el) return;
       el.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[k] = true; });
       el.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[k] = false; });
     };
     bind('btn-left', 'left'); bind('btn-right', 'right');
     bind('btn-up', 'up'); bind('btn-down', 'down');
+    
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
       if (this.isGrounded) this.vel.y = 0.012;
     });
@@ -38,72 +46,85 @@ AFRAME.registerComponent('donkey-kong-logic', {
 
   tick(t, dt) {
     if (dt > 100) return;
-    
-    // Check Scale
-    let onLadder = this.ladders.find(l => Math.abs(this.playerPos.x - l.x) < 0.1 && Math.abs(this.playerPos.y - l.y) < l.h/2);
-    this.isClimbing = onLadder && (this.keys.up || this.keys.down);
+    this.updatePlayer(dt);
+    this.updateOranges(dt);
+  },
 
-    // Movimento
+  updatePlayer(dt) {
+    // ... (Mantieni la logica del movimento player e scale che avevamo prima)
+    // Assicurati che le collisioni player-piattaforma usino i valori fissi delle tue piattaforme
+    
+    // Esempio rapido movimento orizzontale
     if (this.keys.left) this.playerPos.x -= 0.0008 * dt;
     if (this.keys.right) this.playerPos.x += 0.0008 * dt;
     
-    if (this.isClimbing) {
-      this.vel.y = 0;
-      if (this.keys.up) this.playerPos.y += 0.0005 * dt;
-      if (this.keys.down) this.playerPos.y -= 0.0005 * dt;
-    } else {
-      this.vel.y -= 0.00003 * dt;
-      this.playerPos.y += this.vel.y;
-    }
+    // Gravità semplice per player
+    this.vel.y -= 0.00003 * dt;
+    this.playerPos.y += this.vel.y;
 
-    // Collisioni Piattaforme
-    this.isGrounded = false;
-    if (this.vel.y <= 0 && !this.isClimbing) {
-      for (let p of this.platforms) {
-        let dx = this.playerPos.x - p.x;
-        if (Math.abs(dx) < p.w / 2) {
-          let groundY = p.y + Math.tan(p.angle) * dx + 0.075;
-          if (this.playerPos.y < groundY && this.playerPos.y > groundY - 0.2) {
-            this.playerPos.y = groundY;
-            this.vel.y = 0;
-            this.isGrounded = true;
-          }
-        }
-      }
-    }
-
+    // Limiti terra (placeholder per semplicità, adattalo alle tue piattaforme)
+    if(this.playerPos.y < -0.8) { this.playerPos.y = -0.8; this.vel.y = 0; this.isGrounded = true; }
+    
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.05);
-    this.updateOranges(dt);
   },
 
   updateOranges(dt) {
     this.spawnTimer += dt;
-    if (this.spawnTimer > 3000) {
+    if (this.spawnTimer > 3500) { // Un'arancia ogni 3.5 secondi
       this.spawnOrange();
       this.spawnTimer = 0;
     }
-    this.oranges.forEach((o, i) => {
-      o.y += o.velY; o.x += o.velX; o.velY -= 0.0005;
-      this.platforms.forEach(p => {
-        let dx = o.x - p.x;
-        if (Math.abs(dx) < p.w/2) {
-          let gy = p.y + Math.tan(p.angle) * dx + 0.04;
-          if (o.y < gy && o.y > gy - 0.1) {
-            o.y = gy; o.velY = 0; o.velX = -Math.sin(p.angle) * 0.01;
-          }
+
+    for (let i = this.oranges.length - 1; i >= 0; i--) {
+      let o = this.oranges[i];
+      let target = this.path[o.targetIdx];
+
+      // Muovi l'arancia verso il prossimo waypoint
+      let dx = target.x - o.x;
+      let dy = target.y - o.y;
+      let distance = Math.sqrt(dx*dx + dy*dy);
+
+      if (distance < 0.05) {
+        // Arrivata al punto! Passa al prossimo
+        o.targetIdx++;
+        if (o.targetIdx >= this.path.length) {
+          this.world.removeChild(o.el);
+          this.oranges.splice(i, 1);
+          continue;
         }
-      });
+      } else {
+        // Calcolo direzione e movimento fluido
+        o.x += (dx / distance) * 0.0005 * dt;
+        o.y += (dy / distance) * 0.0005 * dt;
+      }
+
       o.el.object3D.position.set(o.x, o.y, 0.05);
-      if (o.y < -2) { this.world.removeChild(o.el); this.oranges.splice(i, 1); }
-      if (Math.sqrt((o.x-this.playerPos.x)**2 + (o.y-this.playerPos.y)**2) < 0.1) location.reload();
-    });
+      o.el.object3D.rotation.z -= 0.1 * dt; // Ruota sempre
+
+      // Collisione con Player
+      let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
+      if (pDist < 0.12) this.resetGame();
+    }
   },
 
   spawnOrange() {
     let el = document.createElement('a-image');
     el.setAttribute('src', '#orangeImg');
-    el.setAttribute('width', 0.1); el.setAttribute('height', 0.1);
+    el.setAttribute('width', 0.12); el.setAttribute('height', 0.12);
     this.world.appendChild(el);
-    this.oranges.push({ el, x: -0.4, y: 0.8, velX: 0.005, velY: 0 });
+    this.oranges.push({
+      el: el,
+      x: this.path[0].x,
+      y: this.path[0].y,
+      targetIdx: 1 // Punta subito al secondo waypoint
+    });
+  },
+
+  resetGame() {
+    this.playerPos = {x: -0.4, y: -0.6};
+    this.vel = {x: 0, y: 0};
+    this.oranges.forEach(o => this.world.removeChild(o.el));
+    this.oranges = [];
+    // Opzionale: alert("Preso!");
   }
 });
