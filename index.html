@@ -22,7 +22,7 @@
       <button class="btn" id="btn-jump" style="width: 80px; height: 80px; font-weight: bold;">JUMP</button>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./campari-target.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.001;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       <a-assets>
         <img id="playerImg" src="assets/player.png">
         <img id="orangeImg" src="assets/orange.png">
@@ -50,4 +50,5 @@
       </a-entity>
     </a-scene>
   </body>
+
 </html>
