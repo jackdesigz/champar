@@ -5,43 +5,43 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <script src="game-logic.js"></script>
-
     <style>
-      /* --- QUI C'È IL CSS (ESTETICA) --- */
+      /* UI E CONTROLLI */
+      #ui { position: absolute; bottom: 20px; width: 100%; z-index: 100; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
+      .btn { background: rgba(200, 0, 0, 0.6); border: 2px solid white; color: white; border-radius: 50%; pointer-events: auto; touch-action: none; font-weight: bold; font-size: 20px; }
+      .dpad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px; gap: 5px; }
       
-      /* Interfaccia Tasti */
-      #ui { 
-        position: absolute; bottom: 20px; width: 100%; z-index: 100; 
-        display: flex; justify-content: space-between; padding: 0 20px; 
-        box-sizing: border-box; pointer-events: none; 
+      /* SCHERMATA VITTORIA */
+      #win-screen {
+        display: none; /* Nascosto di default */
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9); border: 4px solid #D4AF37; /* Oro Campari */
+        color: white; padding: 30px; text-align: center; font-family: sans-serif;
+        border-radius: 15px; z-index: 200; width: 80%;
       }
-      .btn { 
-        background: rgba(200, 0, 0, 0.6); border: 2px solid white; 
-        color: white; border-radius: 50%; pointer-events: auto; 
-        touch-action: none; font-weight: bold; font-size: 20px;
-      }
-      .dpad { 
-        display: grid; grid-template-columns: 50px 50px 50px; 
-        grid-template-rows: 50px 50px; gap: 5px;
-      }
+      #win-screen h1 { margin: 0; color: #e60000; font-size: 24px; text-transform: uppercase; }
+      #win-screen p { font-size: 16px; margin-top: 10px; }
       
-      /* Effetto Flash Rosso quando muori */
+      /* FLASH ROSSO (GAME OVER) */
       #flash {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: red; opacity: 0; pointer-events: none; z-index: 200;
-        transition: opacity 0.2s;
+        background: red; opacity: 0; pointer-events: none; z-index: 150; transition: opacity 0.2s;
       }
     </style>
   </head>
 
   <body>
     <div id="flash"></div>
+    
+    <div id="win-screen">
+      <h1>Campari Recuperato!</h1>
+      <p>Ottimo lavoro.</p>
+      <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:white; color:black; border:none; font-weight:bold;">GIOCA ANCORA</button>
+    </div>
 
     <div id="ui">
       <div class="dpad">
-        <div></div>
-        <button class="btn" id="btn-up">↑</button>
-        <div></div>
+        <div></div><button class="btn" id="btn-up">↑</button><div></div>
         <button class="btn" id="btn-left">←</button>
         <button class="btn" id="btn-down">↓</button>
         <button class="btn" id="btn-right">→</button>
@@ -49,10 +49,10 @@
       <button class="btn" id="btn-jump" style="width: 80px; height: 80px;">JUMP</button>
     </div>
 
-   <a-scene 
-  mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 1000; warmupTolerance: 5; missTolerance: 5" 
-  vr-mode-ui="enabled: false" 
-  device-orientation-permission-ui="enabled: false">
+    <a-scene 
+      mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.001; filterBeta: 10; warmupTolerance: 5; missTolerance: 5" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
       
       <a-assets>
         <img id="playerImg" src="assets/player.png">
@@ -63,7 +63,6 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        
         <a-entity id="game-world" donkey-kong-logic>
           
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 -4" width="1.2" height="0.05" depth="0.1" color="#8B0000"></a-box>
@@ -78,7 +77,6 @@
           <a-box class="platform" position="-0.2 0.7 0" width="0.6" height="0.05" depth="0.1" color="#D4AF37"></a-box>
 
           <a-image id="player" src="#playerImg" position="-0.4 -0.6 0.1" width="0.15" height="0.15"></a-image>
-          
           <a-image id="boss" src="#bossImg" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
 
         </a-entity>
@@ -86,5 +84,3 @@
     </a-scene>
   </body>
 </html>
-
-
