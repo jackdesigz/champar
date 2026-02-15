@@ -3,14 +3,14 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.player = document.querySelector('#player');
     this.world = this.el;
     
-    // FISICA PLAYER
+    // FISICA E STATO PLAYER
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
     this.keys = {left: false, right: false, up: false, down: false};
     this.isGrounded = false;
     this.isClimbing = false;
 
-    // Rilevamento piattaforme e scale (per collisioni player)
+    // Rilevamento piattaforme e scale per collisioni dinamiche
     this.platforms = Array.from(document.querySelectorAll('.platform')).map(el => ({
       x: el.getAttribute('position').x,
       y: el.getAttribute('position').y,
@@ -25,20 +25,24 @@ AFRAME.registerComponent('donkey-kong-logic', {
       w: parseFloat(el.getAttribute('width'))
     }));
 
-    // GESTIONE ARANCE (Waypoints corretti per zig-zag)
+    // GESTIONE ARANCE (Sistema a Waypoints fluidi)
     this.oranges = [];
     this.spawnTimer = 0;
 
-    // IMPORTANTE: Modifica questi punti per farli combaciare con le TUE piattaforme visive
+    // PERCORSO: Ho aggiunto i punti medi per seguire le pendenze.
+    // Regola i valori Y (es: 0.82, 0.32) se le arance volano o affondano troppo.
     this.path = [
-      {x: -0.4, y: 0.85}, // Partenza Boss
-      {x:  0.4, y: 0.80}, // Fine 1a piattaforma (va verso destra)
-      {x:  0.4, y: 0.35}, // Cade su 2a piattaforma
-      {x: -0.4, y: 0.30}, // Fine 2a piattaforma (va verso sinistra)
-      {x: -0.4, y: -0.15},// Cade su 3a piattaforma
-      {x:  0.4, y: -0.20},// Fine 3a piattaforma (va verso destra)
-      {x:  0.4, y: -0.75},// Cade su ultima piattaforma
-      {x: -1.2, y: -0.80} // Esce di scena a sinistra
+      {x: -0.4, y: 0.85}, // 0: Partenza dal Boss
+      {x:  0.0, y: 0.82}, // 1: Metà 1a piattaforma (inclinata)
+      {x:  0.4, y: 0.78}, // 2: Fine 1a piattaforma (destra)
+      {x:  0.4, y: 0.35}, // 3: Caduta su 2a piattaforma
+      {x:  0.0, y: 0.32}, // 4: Metà 2a piattaforma
+      {x: -0.4, y: 0.28}, // 5: Fine 2a piattaforma (sinistra)
+      {x: -0.4, y: -0.15},// 6: Caduta su 3a piattaforma
+      {x:  0.0, y: -0.18},// 7: Metà 3a piattaforma
+      {x:  0.4, y: -0.22},// 8: Fine 3a piattaforma (destra)
+      {x:  0.4, y: -0.75},// 9: Caduta su ultima piattaforma
+      {x: -1.2, y: -0.80} // 10: Uscita di scena
     ];
 
     this.setupControls();
@@ -55,14 +59,14 @@ AFRAME.registerComponent('donkey-kong-logic', {
     bind('btn-up', 'up'); bind('btn-down', 'down');
     
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
-      if (this.isGrounded && !this.isClimbing) this.vel.y = 0.015; // Salto un po' più potente
+      if (this.isGrounded && !this.isClimbing) this.vel.y = 0.015;
     });
   },
 
   tick(t, dt) {
     if (dt > 100) return;
 
-    // 1. LOGICA SCALE (Il player tocca una scala?)
+    // 1. LOGICA SCALE (Salita/Discesa)
     let ladder = this.ladders.find(l => 
       Math.abs(this.playerPos.x - l.x) < 0.1 && 
       this.playerPos.y > l.y - l.h/2 && 
@@ -86,7 +90,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
       this.vel.y -= 0.00004 * dt; // Gravità
       this.playerPos.y += this.vel.y;
 
-      // Collisioni Piattaforme
+      // Collisioni Piattaforme (Aggancio al terreno inclinato)
       this.isGrounded = false;
       if (this.vel.y <= 0) {
         for (let p of this.platforms) {
@@ -103,7 +107,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
       }
     }
 
-    // Applica posizione (Z = 0.1 per evitare clipping con le piattaforme a Z = 0)
+    // Posizionamento Player (Z=0.1 per stare davanti alle piattaforme)
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.1);
 
     this.updateOranges(dt);
@@ -111,7 +115,10 @@ AFRAME.registerComponent('donkey-kong-logic', {
 
   updateOranges(dt) {
     this.spawnTimer += dt;
-    if (this.spawnTimer > 3500) { this.spawnOrange(); this.spawnTimer = 0; }
+    if (this.spawnTimer > 3500) { 
+        this.spawnOrange(); 
+        this.spawnTimer = 0; 
+    }
 
     for (let i = this.oranges.length - 1; i >= 0; i--) {
       let o = this.oranges[i];
@@ -128,14 +135,18 @@ AFRAME.registerComponent('donkey-kong-logic', {
           continue;
         }
       } else {
+        // Movimento fluido verso il waypoint
         o.x += (dx / dist) * 0.0006 * dt;
         o.y += (dy / dist) * 0.0006 * dt;
       }
-      // Z = 0.1 per le arance
+      
+      // Z=0.1 evita il flickering con le piattaforme
       o.el.object3D.position.set(o.x, o.y, 0.1);
-      o.el.object3D.rotation.z -= 0.2 * dt;
+      
+      // Rotazione rallentata (0.05 invece di 0.2)
+      o.el.object3D.rotation.z -= 0.05 * dt;
 
-      // Collisione con Player
+      // Collisione con Player (Reset se colpito)
       let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
       if (pDist < 0.1) this.resetGame();
     }
@@ -144,14 +155,25 @@ AFRAME.registerComponent('donkey-kong-logic', {
   spawnOrange() {
     let el = document.createElement('a-image');
     el.setAttribute('src', '#orangeImg');
-    el.setAttribute('width', 0.12); el.setAttribute('height', 0.12);
+    el.setAttribute('width', 0.12); 
+    el.setAttribute('height', 0.12);
     this.world.appendChild(el);
     this.oranges.push({ el, x: this.path[0].x, y: this.path[0].y, targetIdx: 1 });
   },
 
   resetGame() {
+    // Effetto flash rosso (opzionale se hai messo il div nell'index)
+    const flash = document.getElementById('flash');
+    if(flash) {
+        flash.style.opacity = "0.5";
+        setTimeout(() => { flash.style.opacity = "0"; }, 200);
+    }
+
+    // Reset posizione
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
+    
+    // Pulisce le arance a schermo
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
   }
