@@ -4,7 +4,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.boss = document.querySelector('#boss'); // Riferimento allo Spiritello
     this.world = this.el;
     
-    // FISICA
+    // FISICA E STATO
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
     this.keys = {left: false, right: false, up: false, down: false};
@@ -27,9 +27,10 @@ AFRAME.registerComponent('donkey-kong-logic', {
       w: parseFloat(el.getAttribute('width'))
     }));
 
-    // ARANCE
+    // ARANCE E ANIMAZIONE
     this.oranges = [];
-    this.spawnTimer = 0;
+    this.spawnTimer = 0; // Il nostro "orologio" per generare le arance
+    this.currentBossFrame = '#spiritello001'; // Memorizza il frame attuale per l'animazione
     
     // PERCORSO ARANCE
     this.path = [
@@ -65,6 +66,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
   },
 
   tick(t, dt) {
+    // Se il gioco è in pausa o la performance cala troppo, non fare nulla
     if (dt > 100 || !this.gameActive) return;
 
     // 1. CONTROLLO VITTORIA
@@ -121,34 +123,42 @@ AFRAME.registerComponent('donkey-kong-logic', {
     // Limite caduta mondo
     if (this.playerPos.y < -1.5) this.resetGame();
 
+    // Aggiorna la posizione visiva del giocatore
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.1);
     
-    // ESEGUE L'AGGIORNAMENTO DELLE ARANCE E L'ANIMAZIONE DELLO SPIRITELLO
-    this.updateOranges(dt);
+    // 4. ANIMAZIONE E GENERAZIONE ARANCE
+    // L'ordine qui è fondamentale: prima animiamo in base al tempo, poi aggiorniamo il tempo e le arance
     this.animateBoss();
+    this.updateOranges(dt);
   },
 
-  // NUOVA FUNZIONE PER ANIMARE LO SPIRITELLO
   animateBoss() {
-    let currentFrame = '#spiritello001'; // Default: in attesa
+    let targetFrame = '#spiritello001'; // Immagine di default
     
-    // Controlla a che punto è il timer (spawnTimer va da 0 a 3000)
+    // Seleziona il frame giusto in base ai millisecondi trascorsi
     if (this.spawnTimer > 2000 && this.spawnTimer <= 2800) {
-        currentFrame = '#spiritello002'; // Prepara il lancio
+        targetFrame = '#spiritello002'; // Preparazione lancio
     } else if (this.spawnTimer > 2800) {
-        currentFrame = '#spiritello003'; // Lancia!
+        targetFrame = '#spiritello003'; // Lancio
     }
 
-    // Cambia l'immagine solo se il frame è diverso da quello attuale (per ottimizzare)
-    if (this.boss.getAttribute('src') !== currentFrame) {
-        this.boss.setAttribute('src', currentFrame);
+    // Cambia l'immagine a schermo solo se è diversa da quella precedente
+    if (this.currentBossFrame !== targetFrame) {
+        this.boss.setAttribute('src', targetFrame);
+        this.currentBossFrame = targetFrame; 
     }
   },
 
   updateOranges(dt) {
-    this.spawnTimer += dt;
-    if (this.spawnTimer > 3000) { this.spawnOrange(); this.spawnTimer = 0; }
+    this.spawnTimer += dt; // Il timer avanza
+    
+    // Quando raggiunge 3000ms (3 secondi), genera l'arancia e riazzera
+    if (this.spawnTimer > 3000) { 
+        this.spawnOrange(); 
+        this.spawnTimer = 0; 
+    }
 
+    // Muove tutte le arance esistenti lungo il loro percorso
     for (let i = this.oranges.length - 1; i >= 0; i--) {
       let o = this.oranges[i];
       let target = this.path[o.targetIdx];
@@ -168,8 +178,9 @@ AFRAME.registerComponent('donkey-kong-logic', {
         o.y += (dy / dist) * 0.0006 * dt;
       }
       o.el.object3D.position.set(o.x, o.y, 0.1);
-      o.el.object3D.rotation.z -= 0.05 * dt;
+      o.el.object3D.rotation.z -= 0.05 * dt; // Fa rotolare l'arancia
 
+      // Controlla se l'arancia colpisce il giocatore
       let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
       if (pDist < 0.1) this.resetGame();
     }
@@ -189,11 +200,16 @@ AFRAME.registerComponent('donkey-kong-logic', {
         flash.style.opacity = "0.6";
         setTimeout(() => { flash.style.opacity = "0"; }, 300);
     }
+    // Riporta il giocatore alla partenza
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
+    
+    // Distrugge tutte le arance a schermo
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
-    this.spawnTimer = 0; // Azzera il timer così l'animazione riparte corretta
+    
+    // Azzera il timer così l'animazione riparte correttamente
+    this.spawnTimer = 0; 
   },
 
   winGame() {
