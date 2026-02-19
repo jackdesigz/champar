@@ -1,10 +1,9 @@
 AFRAME.registerComponent('donkey-kong-logic', {
   init() {
     this.player = document.querySelector('#player');
-    this.boss = document.querySelector('#boss'); // Riferimento allo Spiritello
+    this.boss = document.querySelector('#boss');
     this.world = this.el;
     
-    // FISICA E STATO
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
     this.keys = {left: false, right: false, up: false, down: false};
@@ -12,7 +11,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.isClimbing = false;
     this.gameActive = true; 
 
-    // Rilevamento piattaforme e scale
     this.platforms = Array.from(document.querySelectorAll('.platform')).map(el => ({
       x: el.getAttribute('position').x,
       y: el.getAttribute('position').y,
@@ -27,24 +25,20 @@ AFRAME.registerComponent('donkey-kong-logic', {
       w: parseFloat(el.getAttribute('width'))
     }));
 
-    // ARANCE E ANIMAZIONE
     this.oranges = [];
-    this.spawnTimer = 0; // Il nostro "orologio" per generare le arance
-    this.currentBossFrame = '#spiritello001'; // Memorizza il frame attuale per l'animazione
+    this.spawnTimer = 0;
+    this.currentBossFrame = '#spiritello001'; 
     
-    // PERCORSO ARANCE
+    // PERCORSO ARANCE RICALCOLATO (Segue esattamente l'angolo delle piattaforme)
     this.path = [
-      {x: -0.4, y: 0.85}, 
-      {x:  0.0, y: 0.82}, 
-      {x:  0.4, y: 0.78}, 
-      {x:  0.4, y: 0.35}, 
-      {x:  0.0, y: 0.32}, 
-      {x: -0.4, y: 0.28}, 
-      {x: -0.4, y: -0.15}, 
-      {x:  0.0, y: -0.18},
-      {x:  0.4, y: -0.22},
-      {x:  0.4, y: -0.75}, 
-      {x: -1.2, y: -0.80}
+      {x: -0.4, y: 0.76},  // Inizio vicino al boss
+      {x:  0.2, y: 0.76},  // Bordo piattaforma alta
+      {x:  0.2, y: 0.24},  // Caduta verticale sulla 2° piattaforma
+      {x: -0.4, y: 0.29},  // Rotola a sinistra (inclinata in su)
+      {x: -0.4, y: -0.27}, // Caduta verticale sulla 3° piattaforma
+      {x:  0.4, y: -0.21}, // Rotola a destra (inclinata in giù)
+      {x:  0.4, y: -0.77}, // Caduta verticale sull'ultima piattaforma
+      {x: -0.8, y: -0.68}  // Esce di scena a sinistra rotolando in salita
     ];
 
     this.setupControls();
@@ -61,15 +55,14 @@ AFRAME.registerComponent('donkey-kong-logic', {
     bind('btn-up', 'up'); bind('btn-down', 'down');
     
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
-      if (this.isGrounded && !this.isClimbing && this.gameActive) this.vel.y = 0.022;
+      // SALTO RIDOTTO: Da 0.022 a 0.015 per non toccare il soffitto
+      if (this.isGrounded && !this.isClimbing && this.gameActive) this.vel.y = 0.015;
     });
   },
 
   tick(t, dt) {
-    // Se il gioco è in pausa o la performance cala troppo, non fare nulla
     if (dt > 100 || !this.gameActive) return;
 
-    // 1. CONTROLLO VITTORIA
     let dxBoss = this.playerPos.x - (-0.4);
     let dyBoss = this.playerPos.y - (0.85);
     let distBoss = Math.sqrt(dxBoss*dxBoss + dyBoss*dyBoss);
@@ -79,7 +72,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
         return;
     }
 
-    // 2. SCALE
     let ladder = this.ladders.find(l => 
       Math.abs(this.playerPos.x - l.x) < 0.15 && 
       this.playerPos.y > l.y - l.h/2 - 0.1 && 
@@ -95,7 +87,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
       this.isClimbing = false;
     }
 
-    // 3. MOVIMENTO PLAYER
     if (!this.isClimbing) {
       if (this.keys.left) this.playerPos.x -= 0.001 * dt;
       if (this.keys.right) this.playerPos.x += 0.001 * dt;
@@ -103,7 +94,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
       this.vel.y -= 0.00005 * dt; 
       this.playerPos.y += this.vel.y;
 
-      // Collisioni Piattaforme
       this.isGrounded = false;
       if (this.vel.y <= 0) {
         for (let p of this.platforms) {
@@ -120,29 +110,21 @@ AFRAME.registerComponent('donkey-kong-logic', {
       }
     }
     
-    // Limite caduta mondo
     if (this.playerPos.y < -1.5) this.resetGame();
 
-    // Aggiorna la posizione visiva del giocatore
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.1);
     
-    // 4. ANIMAZIONE E GENERAZIONE ARANCE
-    // L'ordine qui è fondamentale: prima animiamo in base al tempo, poi aggiorniamo il tempo e le arance
     this.animateBoss();
     this.updateOranges(dt);
   },
 
   animateBoss() {
-    let targetFrame = '#spiritello001'; // Immagine di default
-    
-    // Seleziona il frame giusto in base ai millisecondi trascorsi
+    let targetFrame = '#spiritello001'; 
     if (this.spawnTimer > 2000 && this.spawnTimer <= 2800) {
-        targetFrame = '#spiritello002'; // Preparazione lancio
+        targetFrame = '#spiritello002'; 
     } else if (this.spawnTimer > 2800) {
-        targetFrame = '#spiritello003'; // Lancio
+        targetFrame = '#spiritello003'; 
     }
-
-    // Cambia l'immagine a schermo solo se è diversa da quella precedente
     if (this.currentBossFrame !== targetFrame) {
         this.boss.setAttribute('src', targetFrame);
         this.currentBossFrame = targetFrame; 
@@ -150,15 +132,13 @@ AFRAME.registerComponent('donkey-kong-logic', {
   },
 
   updateOranges(dt) {
-    this.spawnTimer += dt; // Il timer avanza
+    this.spawnTimer += dt; 
     
-    // Quando raggiunge 3000ms (3 secondi), genera l'arancia e riazzera
     if (this.spawnTimer > 3000) { 
         this.spawnOrange(); 
         this.spawnTimer = 0; 
     }
 
-    // Muove tutte le arance esistenti lungo il loro percorso
     for (let i = this.oranges.length - 1; i >= 0; i--) {
       let o = this.oranges[i];
       let target = this.path[o.targetIdx];
@@ -176,11 +156,16 @@ AFRAME.registerComponent('donkey-kong-logic', {
       } else {
         o.x += (dx / dist) * 0.0006 * dt;
         o.y += (dy / dist) * 0.0006 * dt;
+        
+        // NUOVA ROTAZIONE LOGICA
+        if (Math.abs(dx) > 0.01) { 
+            // Se va a destra (dx > 0) ruota in senso orario (-), altrimenti antiorario (+)
+            let rotDir = dx > 0 ? -1 : 1; 
+            o.el.object3D.rotation.z += rotDir * 0.005 * dt; // Molto più lenta e realistica
+        }
       }
       o.el.object3D.position.set(o.x, o.y, 0.1);
-      o.el.object3D.rotation.z -= 0.05 * dt; // Fa rotolare l'arancia
 
-      // Controlla se l'arancia colpisce il giocatore
       let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
       if (pDist < 0.1) this.resetGame();
     }
@@ -200,15 +185,10 @@ AFRAME.registerComponent('donkey-kong-logic', {
         flash.style.opacity = "0.6";
         setTimeout(() => { flash.style.opacity = "0"; }, 300);
     }
-    // Riporta il giocatore alla partenza
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
-    
-    // Distrugge tutte le arance a schermo
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
-    
-    // Azzera il timer così l'animazione riparte correttamente
     this.spawnTimer = 0; 
   },
 
