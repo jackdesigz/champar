@@ -1,7 +1,7 @@
 AFRAME.registerComponent('donkey-kong-logic', {
   init() {
     this.player = document.querySelector('#player');
-    this.boss = document.querySelector('#boss'); // Riferimento al Boss
+    this.boss = document.querySelector('#boss'); // Riferimento allo Spiritello
     this.world = this.el;
     
     // FISICA
@@ -10,7 +10,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.keys = {left: false, right: false, up: false, down: false};
     this.isGrounded = false;
     this.isClimbing = false;
-    this.gameActive = true; // Variabile per fermare il gioco se vinci
+    this.gameActive = true; 
 
     // Rilevamento piattaforme e scale
     this.platforms = Array.from(document.querySelectorAll('.platform')).map(el => ({
@@ -31,18 +31,18 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.oranges = [];
     this.spawnTimer = 0;
     
-    // PERCORSO ARANCE - MODIFICA I VALORI 'y' QUI SE NON ADERISCONO
+    // PERCORSO ARANCE
     this.path = [
       {x: -0.4, y: 0.85}, 
       {x:  0.0, y: 0.82}, 
       {x:  0.4, y: 0.78}, 
-      {x:  0.4, y: 0.35}, // Punto di caduta
+      {x:  0.4, y: 0.35}, 
       {x:  0.0, y: 0.32}, 
       {x: -0.4, y: 0.28}, 
-      {x: -0.4, y: -0.15}, // Punto di caduta
+      {x: -0.4, y: -0.15}, 
       {x:  0.0, y: -0.18},
       {x:  0.4, y: -0.22},
-      {x:  0.4, y: -0.75}, // Punto di caduta finale
+      {x:  0.4, y: -0.75}, 
       {x: -1.2, y: -0.80}
     ];
 
@@ -60,28 +60,26 @@ AFRAME.registerComponent('donkey-kong-logic', {
     bind('btn-up', 'up'); bind('btn-down', 'down');
     
     document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
-      // SALTO PIÙ POTENTE (0.022)
       if (this.isGrounded && !this.isClimbing && this.gameActive) this.vel.y = 0.022;
     });
   },
 
   tick(t, dt) {
-    if (dt > 100 || !this.gameActive) return; // Ferma tutto se il gioco non è attivo
+    if (dt > 100 || !this.gameActive) return;
 
-    // 1. CONTROLLO VITTORIA (Distanza dal Boss)
-    // Il boss è a circa x:-0.4, y:0.85
+    // 1. CONTROLLO VITTORIA
     let dxBoss = this.playerPos.x - (-0.4);
     let dyBoss = this.playerPos.y - (0.85);
     let distBoss = Math.sqrt(dxBoss*dxBoss + dyBoss*dyBoss);
     
-    if (distBoss < 0.3) { // Se sei vicino al boss
+    if (distBoss < 0.3) { 
         this.winGame();
         return;
     }
 
     // 2. SCALE
     let ladder = this.ladders.find(l => 
-      Math.abs(this.playerPos.x - l.x) < 0.15 && // Tolleranza orizzontale aumentata
+      Math.abs(this.playerPos.x - l.x) < 0.15 && 
       this.playerPos.y > l.y - l.h/2 - 0.1 && 
       this.playerPos.y < l.y + l.h/2 + 0.1
     );
@@ -89,7 +87,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
     if (ladder && (this.keys.up || this.keys.down)) {
       this.isClimbing = true;
       this.vel.y = 0;
-      if (this.keys.up) this.playerPos.y += 0.0008 * dt; // Salita un po' più veloce
+      if (this.keys.up) this.playerPos.y += 0.0008 * dt; 
       if (this.keys.down) this.playerPos.y -= 0.0008 * dt;
     } else {
       this.isClimbing = false;
@@ -100,7 +98,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
       if (this.keys.left) this.playerPos.x -= 0.001 * dt;
       if (this.keys.right) this.playerPos.x += 0.001 * dt;
       
-      this.vel.y -= 0.00005 * dt; // Gravità leggermente aumentata per compensare il salto
+      this.vel.y -= 0.00005 * dt; 
       this.playerPos.y += this.vel.y;
 
       // Collisioni Piattaforme
@@ -124,7 +122,27 @@ AFRAME.registerComponent('donkey-kong-logic', {
     if (this.playerPos.y < -1.5) this.resetGame();
 
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.1);
+    
+    // ESEGUE L'AGGIORNAMENTO DELLE ARANCE E L'ANIMAZIONE DELLO SPIRITELLO
     this.updateOranges(dt);
+    this.animateBoss();
+  },
+
+  // NUOVA FUNZIONE PER ANIMARE LO SPIRITELLO
+  animateBoss() {
+    let currentFrame = '#spiritello001'; // Default: in attesa
+    
+    // Controlla a che punto è il timer (spawnTimer va da 0 a 3000)
+    if (this.spawnTimer > 2000 && this.spawnTimer <= 2800) {
+        currentFrame = '#spiritello002'; // Prepara il lancio
+    } else if (this.spawnTimer > 2800) {
+        currentFrame = '#spiritello003'; // Lancia!
+    }
+
+    // Cambia l'immagine solo se il frame è diverso da quello attuale (per ottimizzare)
+    if (this.boss.getAttribute('src') !== currentFrame) {
+        this.boss.setAttribute('src', currentFrame);
+    }
   },
 
   updateOranges(dt) {
@@ -152,7 +170,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
       o.el.object3D.position.set(o.x, o.y, 0.1);
       o.el.object3D.rotation.z -= 0.05 * dt;
 
-      // Collisione (Game Over)
       let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
       if (pDist < 0.1) this.resetGame();
     }
@@ -172,11 +189,11 @@ AFRAME.registerComponent('donkey-kong-logic', {
         flash.style.opacity = "0.6";
         setTimeout(() => { flash.style.opacity = "0"; }, 300);
     }
-    // Reset posizioni
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
+    this.spawnTimer = 0; // Azzera il timer così l'animazione riparte corretta
   },
 
   winGame() {
