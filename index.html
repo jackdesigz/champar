@@ -23,7 +23,7 @@
   </head>
 
   <body>
-    <div id="version">ver.003</div>
+    <div id="version">ver.004</div>
     <div id="flash"></div>
     
     <div id="win-screen">
@@ -45,7 +45,11 @@
     <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.001; filterBeta: 10; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <img id="playerImg" src="assets/player.png">
+        <img id="player1" src="assets/player (1).png">
+        <img id="player2" src="assets/player (2).png">
+        <img id="player3" src="assets/player (3).png">
+        <img id="player4" src="assets/player (4).png">
+
         <img id="orangeImg" src="assets/orange.png">
         <img id="spiritello001" src="assets/spiritello001.png">
         <img id="spiritello002" src="assets/spiritello002.png">
@@ -69,7 +73,7 @@
 
           <a-box class="platform" position="-0.2 0.7 0" width="0.6" height="0.05" depth="0.1" color="#D4AF37"></a-box>
 
-          <a-image id="player" src="#playerImg" position="-0.4 -0.6 0.1" width="0.15" height="0.15"></a-image>
+          <a-image id="player" src="#player1" position="-0.4 -0.6 0.1" width="0.15" height="0.15"></a-image>
           <a-image id="boss" src="#spiritello001" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
 
         </a-entity>
