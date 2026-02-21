@@ -11,7 +11,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.isClimbing = false;
     this.gameActive = true; 
 
-    // Variabili per l'animazione del giocatore
     this.playerAnimTimer = 0;
     this.currentPlayerFrame = 1;
 
@@ -127,41 +126,35 @@ AFRAME.registerComponent('donkey-kong-logic', {
     if (this.playerPos.y < -1.5) this.resetGame();
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.1);
     
-    // ESEGUE LE FUNZIONI DI ANIMAZIONE E AGGIORNAMENTO
     this.animatePlayer(dt);
     this.animateBoss();
     this.updateOranges(dt);
   },
 
-  // NUOVA FUNZIONE PER ANIMARE IL GIOCATORE
   animatePlayer(dt) {
-    let targetFrame = '#player1'; // Default: In aria o fermo
+    let targetFrame = '#player1'; 
 
-    // 1. Controlla se sta camminando a terra
     if (this.isGrounded && !this.isClimbing && (this.keys.left || this.keys.right)) {
         this.playerAnimTimer += dt;
         
-        // Cambia frame ogni 150 millisecondi (più è basso il numero, più veloce corre)
-        if (this.playerAnimTimer > 150) { 
+        // VELOCITÀ AUMENTATA: abbassato da 150 a 80 millisecondi
+        if (this.playerAnimTimer > 80) { 
             this.currentPlayerFrame++;
-            if (this.currentPlayerFrame > 4) this.currentPlayerFrame = 1; // Torna al frame 1 dopo il 4
+            if (this.currentPlayerFrame > 4) this.currentPlayerFrame = 1; 
             this.playerAnimTimer = 0;
         }
         targetFrame = `#player${this.currentPlayerFrame}`;
     } else {
-        // Se si ferma o salta, riazzera l'animazione
         this.currentPlayerFrame = 1;
         this.playerAnimTimer = 0;
     }
 
-    // 2. Ruota il giocatore in base alla direzione
     if (this.keys.left) {
-        this.player.object3D.rotation.y = Math.PI; // 180 gradi (guarda a sinistra)
+        this.player.object3D.rotation.y = Math.PI; 
     } else if (this.keys.right) {
-        this.player.object3D.rotation.y = 0; // 0 gradi (guarda a destra)
+        this.player.object3D.rotation.y = 0; 
     }
 
-    // 3. Applica l'immagine solo se è cambiata
     if (this.player.getAttribute('src') !== targetFrame) {
         this.player.setAttribute('src', targetFrame);
     }
