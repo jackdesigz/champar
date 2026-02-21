@@ -6,11 +6,14 @@ AFRAME.registerComponent('donkey-kong-logic', {
     
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
-    // NUOVO: Aggiunta la chiave "jump" per tracciare se il bottone è tenuto premuto
     this.keys = {left: false, right: false, up: false, down: false, jump: false};
     this.isGrounded = false;
     this.isClimbing = false;
     this.gameActive = true; 
+
+    // Variabili per l'animazione del giocatore
+    this.playerAnimTimer = 0;
+    this.currentPlayerFrame = 1;
 
     this.platforms = Array.from(document.querySelectorAll('.platform')).map(el => ({
       x: el.getAttribute('position').x,
@@ -30,16 +33,15 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.spawnTimer = 0;
     this.currentBossFrame = '#spiritello001'; 
     
-    // PERCORSO ARANCE RICALCOLATO (Ora scendono davvero seguendo le piattaforme invertite)
     this.path = [
-      {x: -0.4, y: 0.76},  // Inizio vicino al boss
-      {x:  0.2, y: 0.76},  // Bordo piattaforma alta
-      {x:  0.2, y: 0.28},  // CADE sulla 2° piattaforma
-      {x: -0.4, y: 0.23},  // Rotola a sinistra (in discesa)
-      {x: -0.4, y: -0.21}, // CADE sulla 3° piattaforma
-      {x:  0.4, y: -0.27}, // Rotola a destra (in discesa)
-      {x:  0.4, y: -0.71}, // CADE sull'ultima piattaforma
-      {x: -0.8, y: -0.80}  // Esce di scena a sinistra (in discesa)
+      {x: -0.4, y: 0.76}, 
+      {x:  0.2, y: 0.76}, 
+      {x:  0.2, y: 0.28}, 
+      {x: -0.4, y: 0.23}, 
+      {x: -0.4, y: -0.21},
+      {x:  0.4, y: -0.27},
+      {x:  0.4, y: -0.71},
+      {x: -0.8, y: -0.80} 
     ];
 
     this.setupControls();
@@ -55,19 +57,18 @@ AFRAME.registerComponent('donkey-kong-logic', {
     bind('btn-left', 'left'); bind('btn-right', 'right');
     bind('btn-up', 'up'); bind('btn-down', 'down');
     
-    // NUOVO CONTROLLO DEL SALTO CON RILEVAMENTO DELLA PRESSIONE
     const btnJump = document.getElementById('btn-jump');
     if(btnJump) {
       btnJump.addEventListener('touchstart', (e) => {
         e.preventDefault(); 
-        this.keys.jump = true; // Segna che stiamo tenendo premuto
+        this.keys.jump = true; 
         if (this.isGrounded && !this.isClimbing && this.gameActive) {
-          this.vel.y = 0.016; // Forza iniziale del salto (ottima per saltare le arance)
+          this.vel.y = 0.016; 
         }
       });
       btnJump.addEventListener('touchend', (e) => {
         e.preventDefault(); 
-        this.keys.jump = false; // Rilascia il salto
+        this.keys.jump = false; 
       });
     }
   },
@@ -99,12 +100,9 @@ AFRAME.registerComponent('donkey-kong-logic', {
       if (this.keys.left) this.playerPos.x -= 0.001 * dt;
       if (this.keys.right) this.playerPos.x += 0.001 * dt;
       
-      // SISTEMA DI SALTO AVANZATO (Mario-Style)
-      let gravity = 0.00008 * dt; // Gravità standard (ti tira giù velocemente)
-      
-      // Se stai salendo e stai ANCORA tenendo premuto JUMP, sconfiggi un po' la gravità
+      let gravity = 0.00008 * dt; 
       if (this.vel.y > 0 && this.keys.jump) {
-         gravity = 0.00003 * dt; // Gravità ridotta (il tuo salto dura di più!)
+         gravity = 0.00003 * dt; 
       }
       
       this.vel.y -= gravity; 
@@ -129,8 +127,44 @@ AFRAME.registerComponent('donkey-kong-logic', {
     if (this.playerPos.y < -1.5) this.resetGame();
     this.player.object3D.position.set(this.playerPos.x, this.playerPos.y, 0.1);
     
+    // ESEGUE LE FUNZIONI DI ANIMAZIONE E AGGIORNAMENTO
+    this.animatePlayer(dt);
     this.animateBoss();
     this.updateOranges(dt);
+  },
+
+  // NUOVA FUNZIONE PER ANIMARE IL GIOCATORE
+  animatePlayer(dt) {
+    let targetFrame = '#player1'; // Default: In aria o fermo
+
+    // 1. Controlla se sta camminando a terra
+    if (this.isGrounded && !this.isClimbing && (this.keys.left || this.keys.right)) {
+        this.playerAnimTimer += dt;
+        
+        // Cambia frame ogni 150 millisecondi (più è basso il numero, più veloce corre)
+        if (this.playerAnimTimer > 150) { 
+            this.currentPlayerFrame++;
+            if (this.currentPlayerFrame > 4) this.currentPlayerFrame = 1; // Torna al frame 1 dopo il 4
+            this.playerAnimTimer = 0;
+        }
+        targetFrame = `#player${this.currentPlayerFrame}`;
+    } else {
+        // Se si ferma o salta, riazzera l'animazione
+        this.currentPlayerFrame = 1;
+        this.playerAnimTimer = 0;
+    }
+
+    // 2. Ruota il giocatore in base alla direzione
+    if (this.keys.left) {
+        this.player.object3D.rotation.y = Math.PI; // 180 gradi (guarda a sinistra)
+    } else if (this.keys.right) {
+        this.player.object3D.rotation.y = 0; // 0 gradi (guarda a destra)
+    }
+
+    // 3. Applica l'immagine solo se è cambiata
+    if (this.player.getAttribute('src') !== targetFrame) {
+        this.player.setAttribute('src', targetFrame);
+    }
   },
 
   animateBoss() {
@@ -196,7 +230,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
     }
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
-    this.keys.jump = false; // Resetta anche il bottone del salto
+    this.keys.jump = false; 
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
     this.spawnTimer = 0; 
