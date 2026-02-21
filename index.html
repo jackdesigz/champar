@@ -23,7 +23,7 @@
   </head>
 
   <body>
-    <div id="version">ver.005</div>
+    <div id="version">ver.006</div>
     <div id="flash"></div>
     
     <div id="win-screen">
@@ -59,7 +59,8 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-entity id="game-world" donkey-kong-logic>
+        
+        <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
           
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#8B0000"></a-box>
           <a-image class="ladder" src="#scaleImg" position="0.4 -0.55 0.01" width="0.15" height="0.6"></a-image>
