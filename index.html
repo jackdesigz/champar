@@ -7,6 +7,15 @@
     <script src="game-logic.js"></script>
     <style>
       #version { position: absolute; top: 10px; right: 10px; color: white; font-family: sans-serif; font-weight: bold; font-size: 16px; z-index: 999; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
+      
+      /* NUOVO: Stile per il tasto Cambio Modalità */
+      #btn-switch-mode { 
+        position: absolute; top: 10px; left: 10px; z-index: 999; 
+        background: rgba(0, 0, 0, 0.7); color: white; border: 2px solid #D4AF37; 
+        padding: 8px 15px; border-radius: 10px; font-weight: bold; font-family: sans-serif;
+        cursor: pointer; display: none; /* Nascosto di default, lo mostra il JS */
+      }
+
       #ui { position: absolute; bottom: 20px; width: 100%; z-index: 100; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
       .btn { background: rgba(200, 0, 0, 0.6); border: 2px solid white; color: white; border-radius: 50%; pointer-events: auto; touch-action: none; font-weight: bold; font-size: 20px; }
       .dpad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px; gap: 5px; }
@@ -23,9 +32,11 @@
   </head>
 
   <body>
-    <div id="version">ver.007</div>
+    <div id="version">ver.008</div>
     <div id="flash"></div>
     
+    <button id="btn-switch-mode">Passa a 2D</button>
+
     <div id="win-screen">
       <h1>Campari Recuperato!</h1>
       <p>Ottimo lavoro.</p>
@@ -42,25 +53,51 @@
       <button class="btn" id="btn-jump" style="width: 80px; height: 80px;">JUMP</button>
     </div>
 
-<a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.1; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">      
-      <a-assets>
-        <img id="player1" src="assets/player (1).png">
-        <img id="player2" src="assets/player (2).png">
-        <img id="player3" src="assets/player (3).png">
-        <img id="player4" src="assets/player (4).png">
-        <img id="orangeImg" src="assets/orange.png">
-        <img id="spiritello001" src="assets/spiritello001.png">
-        <img id="spiritello002" src="assets/spiritello002.png">
-        <img id="spiritello003" src="assets/spiritello003.png">
-        <img id="scaleImg" src="assets/scale.png">
-      </a-assets>
+    <div id="scene-container"></div>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <script>
+      // 1. CAPIAMO CHI STA GIOCANDO
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const urlParams = new URLSearchParams(window.location.search);
+      let mode = urlParams.get('mode'); 
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        
+      // Se non ci sono istruzioni nell'indirizzo (es. ?mode=2d), decidiamo noi
+      if (!mode) {
+        mode = isMobile ? 'ar' : '2d'; // Telefono = AR, PC = 2D
+      }
+
+      // 2. GESTIONE DEL TASTO (Solo per dispositivi mobili)
+      const btnSwitch = document.getElementById('btn-switch-mode');
+      if (isMobile) {
+        btnSwitch.style.display = 'block'; 
+        if (mode === 'ar') {
+          btnSwitch.innerText = 'Gioca in 2D';
+          // Ricarica la pagina forzando il 2D
+          btnSwitch.onclick = () => window.location.href = '?mode=2d';
+        } else {
+          btnSwitch.innerText = 'Torna in AR';
+          // Ricarica la pagina forzando l'AR
+          btnSwitch.onclick = () => window.location.href = '?mode=ar';
+        }
+      }
+
+      // 3. SALVIAMO I NOSTRI ASSET E IL MONDO IN VARIABILI PER NON RISCRIVERLI
+      const assetsHTML = `
+        <a-assets>
+          <img id="player1" src="assets/player (1).png">
+          <img id="player2" src="assets/player (2).png">
+          <img id="player3" src="assets/player (3).png">
+          <img id="player4" src="assets/player (4).png">
+          <img id="orangeImg" src="assets/orange.png">
+          <img id="spiritello001" src="assets/spiritello001.png">
+          <img id="spiritello002" src="assets/spiritello002.png">
+          <img id="spiritello003" src="assets/spiritello003.png">
+          <img id="scaleImg" src="assets/scale.png">
+        </a-assets>
+      `;
+
+      const gameWorldHTML = `
         <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
-          
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#8B0000"></a-box>
           <a-image class="ladder" src="#scaleImg" position="0.4 -0.55 0.01" width="0.15" height="0.6"></a-image>
           
@@ -74,10 +111,33 @@
 
           <a-image id="player" src="#player1" position="-0.4 -0.6 0.1" width="0.25" height="0.25"></a-image>
           <a-image id="boss" src="#spiritello001" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
-
         </a-entity>
-      </a-entity>
-    </a-scene>
+      `;
+
+      // 4. CREIAMO LA SCENA IN BASE ALLA MODALITÀ
+      const container = document.getElementById('scene-container');
+      
+      if (mode === 'ar') {
+        // Scena in Realtà Aumentata
+        container.innerHTML = `
+          <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.1; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+            ${assetsHTML}
+            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+            <a-entity mindar-image-target="targetIndex: 0">
+              ${gameWorldHTML}
+            </a-entity>
+          </a-scene>
+        `;
+      } else {
+        // Scena in 2D (con telecamera arretrata per inquadrare il gioco intero)
+        container.innerHTML = `
+          <a-scene vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" background="color: #222">
+            ${assetsHTML}
+            <a-camera position="0 0 3.5" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
+            ${gameWorldHTML}
+          </a-scene>
+        `;
+      }
+    </script>
   </body>
 </html>
-
