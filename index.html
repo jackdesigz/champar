@@ -2,9 +2,28 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    
+    <script>
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const urlParams = new URLSearchParams(window.location.search);
+      let mode = urlParams.get('mode'); 
+
+      // Se apri il sito nudo e crudo, ti reindirizza subito alla versione giusta
+      if (!mode) {
+        mode = isMobile ? 'ar' : '2d';
+        window.location.replace('?mode=' + mode);
+      }
+
+      // 3. IL TRUCCO ANTIBLOCCO: Carica MindAR SOLO se siamo su telefono!
+      if (mode === 'ar') {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"><\\/script>');
+      }
+    </script>
+
     <script src="game-logic.js"></script>
+
     <style>
       #version { position: absolute; top: 10px; right: 10px; color: white; font-family: sans-serif; font-weight: bold; font-size: 16px; z-index: 999; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
       
@@ -15,12 +34,11 @@
         cursor: pointer; display: none; 
       }
 
-      /* NUOVO: Riquadro Istruzioni PC */
       #pc-instructions {
         position: absolute; top: 20px; left: 20px; z-index: 999;
         background: rgba(0, 0, 0, 0.8); color: white; border: 2px solid #D4AF37;
         padding: 15px; border-radius: 10px; font-family: sans-serif;
-        display: none; /* Visibile solo da PC */
+        display: none; 
       }
       #pc-instructions h3 { margin: 0 0 10px 0; color: #D4AF37; font-size: 18px; }
       #pc-instructions p { margin: 5px 0; font-size: 14px; }
@@ -41,7 +59,7 @@
   </head>
 
   <body>
-    <div id="version">ver.009</div>
+    <div id="version">ver.010</div>
     <div id="flash"></div>
     
     <button id="btn-switch-mode">Passa a 2D</button>
@@ -68,18 +86,10 @@
       <button class="btn" id="btn-jump" style="width: 80px; height: 80px;">JUMP</button>
     </div>
 
-    <div id="scene-container"></div>
-
     <script>
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const urlParams = new URLSearchParams(window.location.search);
-      let mode = urlParams.get('mode'); 
-
-      if (!mode) {
-        mode = isMobile ? 'ar' : '2d'; 
-      }
-
       const btnSwitch = document.getElementById('btn-switch-mode');
+      
+      // Gestione dei pulsanti a schermo
       if (isMobile) {
         btnSwitch.style.display = 'block'; 
         if (mode === 'ar') {
@@ -91,11 +101,10 @@
         }
       }
 
-      // Nascondi i pulsanti e mostra la tastiera se siamo in 2D e da PC
       if (mode === '2d') {
-         document.getElementById('ui').style.display = 'none'; // Nasconde D-pad
+         document.getElementById('ui').style.display = 'none'; 
          if (!isMobile) {
-            document.getElementById('pc-instructions').style.display = 'block'; // Mostra istruzioni
+            document.getElementById('pc-instructions').style.display = 'block'; 
          }
       }
 
@@ -128,3 +137,29 @@
 
           <a-image id="player" src="#player1" position="-0.4 -0.6 0.1" width="0.25" height="0.25"></a-image>
           <a-image id="boss" src="#spiritello001" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
+        </a-entity>
+      `;
+
+      // SCRIVIAMO DIRETTAMENTE L'HTML NELLA PAGINA
+      if (mode === 'ar') {
+        document.write(`
+          <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.1; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+            ${assetsHTML}
+            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+            <a-entity mindar-image-target="targetIndex: 0">
+              ${gameWorldHTML}
+            </a-entity>
+          </a-scene>
+        `);
+      } else {
+        document.write(`
+          <a-scene vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" background="color: #222">
+            ${assetsHTML}
+            <a-camera position="0 0.1 2.2" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
+            ${gameWorldHTML}
+          </a-scene>
+        `);
+      }
+    </script>
+  </body>
+</html>
