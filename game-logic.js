@@ -47,29 +47,55 @@ AFRAME.registerComponent('donkey-kong-logic', {
   },
 
   setupControls() {
+    // 1. CONTROLLI TOUCH E MOUSE (Per i pulsanti a schermo)
     const bind = (id, k) => {
       const el = document.getElementById(id);
       if(!el) return;
+      // Touch per smartphone
       el.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[k] = true; });
       el.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[k] = false; });
+      // Mouse per cliccare da PC
+      el.addEventListener('mousedown', (e) => { e.preventDefault(); this.keys[k] = true; });
+      el.addEventListener('mouseup', (e) => { e.preventDefault(); this.keys[k] = false; });
+      el.addEventListener('mouseleave', (e) => { e.preventDefault(); this.keys[k] = false; });
     };
     bind('btn-left', 'left'); bind('btn-right', 'right');
     bind('btn-up', 'up'); bind('btn-down', 'down');
     
     const btnJump = document.getElementById('btn-jump');
     if(btnJump) {
-      btnJump.addEventListener('touchstart', (e) => {
-        e.preventDefault(); 
-        this.keys.jump = true; 
-        if (this.isGrounded && !this.isClimbing && this.gameActive) {
-          this.vel.y = 0.016; 
-        }
-      });
-      btnJump.addEventListener('touchend', (e) => {
-        e.preventDefault(); 
-        this.keys.jump = false; 
-      });
+      const startJump = (e) => {
+        e.preventDefault(); this.keys.jump = true; 
+        if (this.isGrounded && !this.isClimbing && this.gameActive) this.vel.y = 0.016; 
+      };
+      const endJump = (e) => { e.preventDefault(); this.keys.jump = false; };
+
+      btnJump.addEventListener('touchstart', startJump);
+      btnJump.addEventListener('mousedown', startJump);
+      btnJump.addEventListener('touchend', endJump);
+      btnJump.addEventListener('mouseup', endJump);
+      btnJump.addEventListener('mouseleave', endJump);
     }
+
+    // 2. CONTROLLI TASTIERA (Per chi gioca da PC)
+    window.addEventListener('keydown', (e) => {
+      if(e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = true;
+      if(e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = true;
+      if(e.code === 'ArrowUp' || e.code === 'KeyW') this.keys.up = true;
+      if(e.code === 'ArrowDown' || e.code === 'KeyS') this.keys.down = true;
+      if(e.code === 'Space') {
+        this.keys.jump = true;
+        if (this.isGrounded && !this.isClimbing && this.gameActive) this.vel.y = 0.016;
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if(e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = false;
+      if(e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = false;
+      if(e.code === 'ArrowUp' || e.code === 'KeyW') this.keys.up = false;
+      if(e.code === 'ArrowDown' || e.code === 'KeyS') this.keys.down = false;
+      if(e.code === 'Space') this.keys.jump = false;
+    });
   },
 
   tick(t, dt) {
@@ -100,9 +126,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
       if (this.keys.right) this.playerPos.x += 0.001 * dt;
       
       let gravity = 0.00008 * dt; 
-      if (this.vel.y > 0 && this.keys.jump) {
-         gravity = 0.00003 * dt; 
-      }
+      if (this.vel.y > 0 && this.keys.jump) gravity = 0.00003 * dt; 
       
       this.vel.y -= gravity; 
       this.playerPos.y += this.vel.y;
@@ -133,11 +157,8 @@ AFRAME.registerComponent('donkey-kong-logic', {
 
   animatePlayer(dt) {
     let targetFrame = '#player1'; 
-
     if (this.isGrounded && !this.isClimbing && (this.keys.left || this.keys.right)) {
         this.playerAnimTimer += dt;
-        
-        // VELOCITÀ AUMENTATA: abbassato da 150 a 80 millisecondi
         if (this.playerAnimTimer > 80) { 
             this.currentPlayerFrame++;
             if (this.currentPlayerFrame > 4) this.currentPlayerFrame = 1; 
@@ -149,24 +170,16 @@ AFRAME.registerComponent('donkey-kong-logic', {
         this.playerAnimTimer = 0;
     }
 
-    if (this.keys.left) {
-        this.player.object3D.rotation.y = Math.PI; 
-    } else if (this.keys.right) {
-        this.player.object3D.rotation.y = 0; 
-    }
+    if (this.keys.left) this.player.object3D.rotation.y = Math.PI; 
+    else if (this.keys.right) this.player.object3D.rotation.y = 0; 
 
-    if (this.player.getAttribute('src') !== targetFrame) {
-        this.player.setAttribute('src', targetFrame);
-    }
+    if (this.player.getAttribute('src') !== targetFrame) this.player.setAttribute('src', targetFrame);
   },
 
   animateBoss() {
     let targetFrame = '#spiritello001'; 
-    if (this.spawnTimer > 2000 && this.spawnTimer <= 2800) {
-        targetFrame = '#spiritello002'; 
-    } else if (this.spawnTimer > 2800) {
-        targetFrame = '#spiritello003'; 
-    }
+    if (this.spawnTimer > 2000 && this.spawnTimer <= 2800) targetFrame = '#spiritello002'; 
+    else if (this.spawnTimer > 2800) targetFrame = '#spiritello003'; 
     if (this.currentBossFrame !== targetFrame) {
         this.boss.setAttribute('src', targetFrame);
         this.currentBossFrame = targetFrame; 
@@ -176,7 +189,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
   updateOranges(dt) {
     this.spawnTimer += dt; 
     if (this.spawnTimer > 3000) { this.spawnOrange(); this.spawnTimer = 0; }
-
     for (let i = this.oranges.length - 1; i >= 0; i--) {
       let o = this.oranges[i];
       let target = this.path[o.targetIdx];
@@ -194,14 +206,12 @@ AFRAME.registerComponent('donkey-kong-logic', {
       } else {
         o.x += (dx / dist) * 0.0006 * dt;
         o.y += (dy / dist) * 0.0006 * dt;
-        
         if (Math.abs(dx) > 0.01) { 
             let rotDir = dx > 0 ? -1 : 1; 
             o.el.object3D.rotation.z += rotDir * 0.005 * dt; 
         }
       }
       o.el.object3D.position.set(o.x, o.y, 0.1);
-
       let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
       if (pDist < 0.1) this.resetGame();
     }
@@ -217,10 +227,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
 
   resetGame() {
     const flash = document.getElementById('flash');
-    if(flash) {
-        flash.style.opacity = "0.6";
-        setTimeout(() => { flash.style.opacity = "0"; }, 300);
-    }
+    if(flash) { flash.style.opacity = "0.6"; setTimeout(() => { flash.style.opacity = "0"; }, 300); }
     this.playerPos = {x: -0.4, y: -0.6};
     this.vel = {x: 0, y: 0};
     this.keys.jump = false; 
