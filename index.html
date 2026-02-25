@@ -10,13 +10,11 @@
       const urlParams = new URLSearchParams(window.location.search);
       let mode = urlParams.get('mode'); 
 
-      // Se apri il sito nudo e crudo, ti reindirizza subito alla versione giusta
       if (!mode) {
         mode = isMobile ? 'ar' : '2d';
         window.location.replace('?mode=' + mode);
       }
 
-      // 3. IL TRUCCO ANTIBLOCCO: Carica MindAR SOLO se siamo su telefono!
       if (mode === 'ar') {
         document.write('<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"><\\/script>');
       }
@@ -59,7 +57,7 @@
   </head>
 
   <body>
-    <div id="version">ver.010</div>
+    <div id="version">ver.011</div>
     <div id="flash"></div>
     
     <button id="btn-switch-mode">Passa a 2D</button>
@@ -89,7 +87,6 @@
     <script>
       const btnSwitch = document.getElementById('btn-switch-mode');
       
-      // Gestione dei pulsanti a schermo
       if (isMobile) {
         btnSwitch.style.display = 'block'; 
         if (mode === 'ar') {
@@ -122,25 +119,25 @@
         </a-assets>
       `;
 
+      // TUTTE LE PIATTAFORME ORA SONO ROSSO CAMPARI (#e60000)
       const gameWorldHTML = `
         <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
-          <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#8B0000"></a-box>
+          <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#e60000"></a-box>
           <a-image class="ladder" src="#scaleImg" position="0.4 -0.55 0.01" width="0.15" height="0.6"></a-image>
           
-          <a-box class="platform" position="0 -0.3 0" rotation="0 0 -4" width="1.0" height="0.05" depth="0.1" color="#D4AF37"></a-box>
+          <a-box class="platform" position="0 -0.3 0" rotation="0 0 -4" width="1.0" height="0.05" depth="0.1" color="#e60000"></a-box>
           <a-image class="ladder" src="#scaleImg" position="-0.3 -0.05 0.01" width="0.15" height="0.6"></a-image>
 
-          <a-box class="platform" position="0 0.2 0" rotation="0 0 4" width="1.0" height="0.05" depth="0.1" color="#8B0000"></a-box>
+          <a-box class="platform" position="0 0.2 0" rotation="0 0 4" width="1.0" height="0.05" depth="0.1" color="#e60000"></a-box>
           <a-image class="ladder" src="#scaleImg" position="0.3 0.45 0.01" width="0.15" height="0.6"></a-image>
 
-          <a-box class="platform" position="-0.2 0.7 0" width="0.6" height="0.05" depth="0.1" color="#D4AF37"></a-box>
+          <a-box class="platform" position="-0.2 0.7 0" width="0.6" height="0.05" depth="0.1" color="#e60000"></a-box>
 
           <a-image id="player" src="#player1" position="-0.4 -0.6 0.1" width="0.25" height="0.25"></a-image>
           <a-image id="boss" src="#spiritello001" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
         </a-entity>
       `;
 
-      // SCRIVIAMO DIRETTAMENTE L'HTML NELLA PAGINA
       if (mode === 'ar') {
         document.write(`
           <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.1; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
