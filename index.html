@@ -3,29 +3,10 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <script>
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const urlParams = new URLSearchParams(window.location.search);
-      let mode = urlParams.get('mode'); 
-
-      if (!mode) {
-        mode = isMobile ? 'ar' : '2d';
-        window.location.replace('?mode=' + mode);
-      }
-
-      // Carichiamo A-Frame per tutti
-      document.write('<script src="https://aframe.io/releases/1.4.2/aframe.min.js"><\\/script>');
-      
-      // Carichiamo MindAR SOLO per la versione AR (evita lo schermo bianco su PC!)
-      if (mode === 'ar') {
-        document.write('<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"><\\/script>');
-      }
-    </script>
-
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="game-logic.js"></script>
 
     <style>
-      /* Abbiamo alzato lo Z-Index a 99999 per stare assolutamente sopra a tutto */
       #version { position: absolute; top: 10px; right: 10px; color: white; font-family: sans-serif; font-weight: bold; font-size: 16px; z-index: 99999; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
       
       #btn-switch-mode { 
@@ -46,8 +27,6 @@
 
       #ui { position: absolute; bottom: 20px; width: 100%; z-index: 99999; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; pointer-events: none; }
       .btn { background: rgba(200, 0, 0, 0.6); border: 2px solid white; color: white; border-radius: 50%; pointer-events: auto; touch-action: none; font-weight: bold; font-size: 20px; user-select: none; }
-      
-      /* Dimensioni forzate per i tasti direzionali */
       .dpad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px; gap: 5px; }
       .dpad .btn { width: 50px; height: 50px; }
       
@@ -63,7 +42,7 @@
   </head>
 
   <body>
-    <div id="version">ver.013</div>
+    <div id="version">ver.014</div>
     <div id="flash"></div>
     
     <button id="btn-switch-mode"></button>
@@ -90,12 +69,25 @@
       <button class="btn" id="btn-jump" style="width: 80px; height: 80px;">JUMP</button>
     </div>
 
+    <div id="scene-container"></div>
+
     <script>
-      // 1. GESTIONE DEI PULSANTI
+      // 1. RICONOSCIMENTO DISPOSITIVO
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const urlParams = new URLSearchParams(window.location.search);
+      let mode = urlParams.get('mode'); 
+
+      if (!mode) {
+        mode = isMobile ? 'ar' : '2d';
+        window.location.replace('?mode=' + mode);
+      }
+
+      // 2. GESTIONE INTERFACCIA
       const btnSwitch = document.getElementById('btn-switch-mode');
-      
+      const ui = document.getElementById('ui');
+      const pcInst = document.getElementById('pc-instructions');
+
       if (isMobile) {
-        // Se sei su smartphone, mostra il tasto di cambio e tieni l'interfaccia #ui VISIBILE
         btnSwitch.style.display = 'block'; 
         if (mode === 'ar') {
           btnSwitch.innerText = 'Gioca in 2D';
@@ -104,13 +96,14 @@
           btnSwitch.innerText = 'Torna in AR';
           btnSwitch.onclick = () => window.location.href = '?mode=ar';
         }
-      } else {
-        // CORREZIONE BUG: Se sei su PC, nascondi l'interfaccia touch e mostra le istruzioni tastiera
-        document.getElementById('ui').style.display = 'none'; 
-        document.getElementById('pc-instructions').style.display = 'block'; 
       }
 
-      // 2. CREAZIONE DEL MONDO
+      if (mode === '2d' && !isMobile) {
+         ui.style.display = 'none'; 
+         pcInst.style.display = 'block'; 
+      }
+
+      // 3. VARIABILI DEL GIOCO
       const assetsHTML = `
         <a-assets>
           <img id="player1" src="assets/player (1).png">
@@ -143,25 +136,40 @@
         </a-entity>
       `;
 
-      // 3. SCRITTURA SICURA SULLA PAGINA
-      if (mode === 'ar') {
-        document.write(`
-          <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.1; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-            ${assetsHTML}
-            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-            <a-entity mindar-image-target="targetIndex: 0">
+      // 4. CREAZIONE DELLA SCENA (FUNZIONE SICURA)
+      function injectScene() {
+        const container = document.getElementById('scene-container');
+        if (mode === 'ar') {
+          container.innerHTML = `
+            <a-scene mindar-image="imageTargetSrc: ./campari-target.mind; filterMinCF:0.0001; filterBeta: 0.1; warmupTolerance: 5; missTolerance: 5" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+              ${assetsHTML}
+              <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+              <a-entity mindar-image-target="targetIndex: 0">
+                ${gameWorldHTML}
+              </a-entity>
+            </a-scene>
+          `;
+        } else {
+          container.innerHTML = `
+            <a-scene vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" background="color: #222">
+              ${assetsHTML}
+              <a-camera position="0 0.1 2.2" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
               ${gameWorldHTML}
-            </a-entity>
-          </a-scene>
-        `);
+            </a-scene>
+          `;
+        }
+      }
+
+      // 5. CARICAMENTO ASINCRONO (Il segreto per far funzionare tutto)
+      if (mode === 'ar') {
+        // Su telefono AR: scarica prima MindAR, e SOLO DOPO inietta la scena
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js';
+        script.onload = () => injectScene();
+        document.head.appendChild(script);
       } else {
-        document.write(`
-          <a-scene vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" background="color: #222">
-            ${assetsHTML}
-            <a-camera position="0 0.1 2.2" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
-            ${gameWorldHTML}
-          </a-scene>
-        `);
+        // Su PC o 2D Mobile: inietta la scena immediatamente (niente MindAR!)
+        injectScene();
       }
     </script>
   </body>
