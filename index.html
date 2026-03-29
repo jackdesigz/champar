@@ -45,7 +45,7 @@
   </head>
 
   <body>
-    <div id="version">ver.016</div>
+    <div id="version">ver.017</div>
     <div id="flash"></div>
     
     <button id="btn-switch-mode"></button>
@@ -118,17 +118,17 @@
         </a-assets>
       `;
 
-      // NUOVE SCALE: a-plane con "repeat" e posizione Z avanzata a 0.06
+      // ATTENZIONE: Il valore Z delle scale ora è "-0.06" (Dietro)
       const gameWorldHTML = `
         <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#e60000"></a-box>
-          <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="0.4 -0.54 0.06" width="0.15" height="0.48"></a-plane>
+          <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="0.4 -0.54 -0.06" width="0.15" height="0.48"></a-plane>
           
           <a-box class="platform" position="0 -0.3 0" rotation="0 0 -4" width="1.0" height="0.05" depth="0.1" color="#e60000"></a-box>
-          <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="-0.3 -0.05 0.06" width="0.15" height="0.48"></a-plane>
+          <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="-0.3 -0.05 -0.06" width="0.15" height="0.48"></a-plane>
 
           <a-box class="platform" position="0 0.2 0" rotation="0 0 4" width="1.0" height="0.05" depth="0.1" color="#e60000"></a-box>
-          <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="0.3 0.46 0.06" width="0.15" height="0.48"></a-plane>
+          <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="0.3 0.46 -0.06" width="0.15" height="0.48"></a-plane>
 
           <a-box class="platform" position="-0.2 0.7 0" width="0.6" height="0.05" depth="0.1" color="#e60000"></a-box>
 
