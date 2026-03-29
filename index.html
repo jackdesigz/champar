@@ -19,6 +19,16 @@
         cursor: pointer; display: none; 
       }
 
+      /* NUOVO: Stile per il tasto Restart */
+      #btn-restart { 
+        position: absolute; top: 40px; right: 10px; z-index: 99999; 
+        background: rgba(230, 0, 0, 0.7); /* Rosso Campari semi-trasparente */
+        color: white; border: 2px solid #D4AF37; 
+        padding: 8px 15px; border-radius: 10px; font-weight: bold; font-family: sans-serif;
+        cursor: pointer; 
+      }
+      #btn-restart:active { background: rgba(230, 0, 0, 1); }
+
       #pc-instructions {
         position: absolute; top: 20px; left: 20px; z-index: 99999;
         background: rgba(0, 0, 0, 0.8); color: white; border: 2px solid #D4AF37;
@@ -45,10 +55,11 @@
   </head>
 
   <body>
-    <div id="version">ver.017</div>
+    <div id="version">ver.018</div>
     <div id="flash"></div>
     
     <button id="btn-switch-mode"></button>
+    <button id="btn-restart">RESTART</button>
 
     <div id="pc-instructions">
       <h3>Comandi Tastiera</h3>
@@ -104,6 +115,15 @@
          pcInst.style.display = 'block'; 
       }
 
+      // NUOVO: Logica del tasto Restart
+      document.getElementById('btn-restart').addEventListener('click', () => {
+        // Cerca il componente logico del gioco e forza la funzione resetGame
+        const gameWorld = document.getElementById('game-world');
+        if (gameWorld && gameWorld.components['donkey-kong-logic']) {
+            gameWorld.components['donkey-kong-logic'].resetGame();
+        }
+      });
+
       const assetsHTML = `
         <a-assets>
           <img id="player1" src="assets/player (1).png">
@@ -118,7 +138,6 @@
         </a-assets>
       `;
 
-      // ATTENZIONE: Il valore Z delle scale ora è "-0.06" (Dietro)
       const gameWorldHTML = `
         <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#e60000"></a-box>
