@@ -2,7 +2,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
   init() {
     this.player = document.querySelector('#player');
     this.boss = document.querySelector('#boss');
-    this.bottle = document.querySelector('#bottle'); // NUOVO: Riferimento alla bottiglia
+    this.bottle = document.querySelector('#bottle'); 
     this.world = this.el;
     
     this.playerPos = {x: -0.4, y: -0.6};
@@ -11,10 +11,8 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.isGrounded = false;
     this.isClimbing = false;
     
-    // NUOVO: Il gioco parte in pausa in attesa della Start Screen
     this.gameActive = false; 
 
-    // NUOVO: Sistema di punteggio
     this.score = 0;
     this.scoreDisplay = document.getElementById('score-display');
 
@@ -104,15 +102,10 @@ AFRAME.registerComponent('donkey-kong-logic', {
   tick(t, dt) {
     if (dt > 100 || !this.gameActive) return;
 
-    // AUMENTO DEL PUNTEGGIO (10 punti per ogni secondo di sopravvivenza)
-    this.score += 10 * (dt / 1000);
-    if(this.scoreDisplay) this.scoreDisplay.innerText = "PUNTI: " + Math.floor(this.score);
-
-    // NUOVO CONTROLLO VITTORIA: Distanza dalla BOTTIGLIA (che si trova a x: -0.1)
     let dxBottle = this.playerPos.x - (-0.1);
     let dyBottle = this.playerPos.y - (0.85);
     let distBottle = Math.sqrt(dxBottle*dxBottle + dyBottle*dyBottle);
-    if (distBottle < 0.15) { this.winGame(); return; } // Tolleranza ridotta per toccarla davvero!
+    if (distBottle < 0.15) { this.winGame(); return; } 
 
     let ladder = this.ladders.find(l => 
       Math.abs(this.playerPos.x - l.x) < 0.15 && 
@@ -130,8 +123,9 @@ AFRAME.registerComponent('donkey-kong-logic', {
     }
 
     if (!this.isClimbing) {
-      if (this.keys.left) this.playerPos.x -= 0.001 * dt;
-      if (this.keys.right) this.playerPos.x += 0.001 * dt;
+      // VELOCITÀ EROE RIDOTTA (da 0.001 a 0.0007)
+      if (this.keys.left) this.playerPos.x -= 0.0007 * dt;
+      if (this.keys.right) this.playerPos.x += 0.0007 * dt;
       
       let gravity = 0.00008 * dt; 
       if (this.vel.y > 0 && this.keys.jump) gravity = 0.00003 * dt; 
@@ -220,8 +214,18 @@ AFRAME.registerComponent('donkey-kong-logic', {
         }
       }
       o.el.object3D.position.set(o.x, o.y, 0.1);
+      
       let pDist = Math.sqrt(Math.pow(o.x - this.playerPos.x, 2) + Math.pow(o.y - this.playerPos.y, 2));
-      if (pDist < 0.1) this.resetGame();
+      if (pDist < 0.1) {
+          this.resetGame();
+      }
+
+      // NUOVO LOGICA PUNTEGGIO: Se sei sopra l'arancia e ci passi in mezzo, prendi 10 punti!
+      if (!o.passed && Math.abs(o.x - this.playerPos.x) < 0.1 && this.playerPos.y > o.y + 0.1) {
+          o.passed = true; // Segna l'arancia come superata
+          this.score += 10;
+          if(this.scoreDisplay) this.scoreDisplay.innerText = "PUNTI: " + this.score;
+      }
     }
   },
 
@@ -230,7 +234,8 @@ AFRAME.registerComponent('donkey-kong-logic', {
     el.setAttribute('src', '#orangeImg');
     el.setAttribute('width', 0.12); el.setAttribute('height', 0.12);
     this.world.appendChild(el);
-    this.oranges.push({ el, x: this.path[0].x, y: this.path[0].y, targetIdx: 1 });
+    // NUOVO: L'arancia nasce con "passed: false" (non ancora saltata)
+    this.oranges.push({ el, x: this.path[0].x, y: this.path[0].y, targetIdx: 1, passed: false });
   },
 
   resetGame() {
@@ -242,13 +247,15 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
     this.spawnTimer = 0; 
-    this.score = 0; // Azzera il punteggio se muori!
+    
+    // Azzera i punti al game over
+    this.score = 0; 
+    if(this.scoreDisplay) this.scoreDisplay.innerText = "PUNTI: 0";
   },
 
   winGame() {
       this.gameActive = false;
       document.getElementById('win-screen').style.display = 'block';
-      // Aggiorna il testo per mostrare i punti finali
-      document.getElementById('final-score').innerText = "Punteggio Finale: " + Math.floor(this.score);
+      document.getElementById('final-score').innerText = "Punteggio Finale: " + this.score;
   }
 });
