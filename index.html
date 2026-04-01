@@ -62,7 +62,7 @@
   </head>
 
   <body>
-    <div id="version">ver.020</div>
+    <div id="version">ver.021</div>
     <div id="flash"></div>
     
     <div id="score-display">PUNTI: 0</div>
@@ -160,7 +160,7 @@
         </a-assets>
       `;
 
-      // BOTTIGLIA PIU' PICCOLA E PROPORZIONATA (width="0.06" height="0.2") E POGGIATA SULLA PIATTAFORMA
+      // BOTTIGLIA SISTEMATA (width="0.08" height="0.16") E ABBASSATA
       const gameWorldHTML = `
         <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#e60000"></a-box>
@@ -178,7 +178,7 @@
           
           <a-image id="boss" src="#spiritello001" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
           
-          <a-image id="bottle" src="#bottleImg" position="-0.1 0.82 0.1" width="0.06" height="0.2"></a-image>
+          <a-image id="bottle" src="#bottleImg" position="-0.1 0.80 0.1" width="0.08" height="0.16"></a-image>
         </a-entity>
       `;
 
