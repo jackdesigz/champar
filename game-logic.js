@@ -2,6 +2,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
   init() {
     this.player = document.querySelector('#player');
     this.boss = document.querySelector('#boss');
+    this.bottle = document.querySelector('#bottle'); // NUOVO: Riferimento alla bottiglia
     this.world = this.el;
     
     this.playerPos = {x: -0.4, y: -0.6};
@@ -9,7 +10,13 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.keys = {left: false, right: false, up: false, down: false, jump: false};
     this.isGrounded = false;
     this.isClimbing = false;
-    this.gameActive = true; 
+    
+    // NUOVO: Il gioco parte in pausa in attesa della Start Screen
+    this.gameActive = false; 
+
+    // NUOVO: Sistema di punteggio
+    this.score = 0;
+    this.scoreDisplay = document.getElementById('score-display');
 
     this.playerAnimTimer = 0;
     this.currentPlayerFrame = 1;
@@ -47,14 +54,11 @@ AFRAME.registerComponent('donkey-kong-logic', {
   },
 
   setupControls() {
-    // 1. CONTROLLI TOUCH E MOUSE (Per i pulsanti a schermo)
     const bind = (id, k) => {
       const el = document.getElementById(id);
       if(!el) return;
-      // Touch per smartphone
       el.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[k] = true; });
       el.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[k] = false; });
-      // Mouse per cliccare da PC
       el.addEventListener('mousedown', (e) => { e.preventDefault(); this.keys[k] = true; });
       el.addEventListener('mouseup', (e) => { e.preventDefault(); this.keys[k] = false; });
       el.addEventListener('mouseleave', (e) => { e.preventDefault(); this.keys[k] = false; });
@@ -77,7 +81,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
       btnJump.addEventListener('mouseleave', endJump);
     }
 
-    // 2. CONTROLLI TASTIERA (Per chi gioca da PC)
     window.addEventListener('keydown', (e) => {
       if(e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = true;
       if(e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = true;
@@ -101,10 +104,15 @@ AFRAME.registerComponent('donkey-kong-logic', {
   tick(t, dt) {
     if (dt > 100 || !this.gameActive) return;
 
-    let dxBoss = this.playerPos.x - (-0.4);
-    let dyBoss = this.playerPos.y - (0.85);
-    let distBoss = Math.sqrt(dxBoss*dxBoss + dyBoss*dyBoss);
-    if (distBoss < 0.3) { this.winGame(); return; }
+    // AUMENTO DEL PUNTEGGIO (10 punti per ogni secondo di sopravvivenza)
+    this.score += 10 * (dt / 1000);
+    if(this.scoreDisplay) this.scoreDisplay.innerText = "PUNTI: " + Math.floor(this.score);
+
+    // NUOVO CONTROLLO VITTORIA: Distanza dalla BOTTIGLIA (che si trova a x: -0.1)
+    let dxBottle = this.playerPos.x - (-0.1);
+    let dyBottle = this.playerPos.y - (0.85);
+    let distBottle = Math.sqrt(dxBottle*dxBottle + dyBottle*dyBottle);
+    if (distBottle < 0.15) { this.winGame(); return; } // Tolleranza ridotta per toccarla davvero!
 
     let ladder = this.ladders.find(l => 
       Math.abs(this.playerPos.x - l.x) < 0.15 && 
@@ -234,10 +242,13 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.oranges.forEach(o => this.world.removeChild(o.el));
     this.oranges = [];
     this.spawnTimer = 0; 
+    this.score = 0; // Azzera il punteggio se muori!
   },
 
   winGame() {
       this.gameActive = false;
       document.getElementById('win-screen').style.display = 'block';
+      // Aggiorna il testo per mostrare i punti finali
+      document.getElementById('final-score').innerText = "Punteggio Finale: " + Math.floor(this.score);
   }
 });
