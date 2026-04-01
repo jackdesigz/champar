@@ -12,6 +12,13 @@
 
       #version { position: absolute; top: 10px; right: 10px; color: white; font-family: sans-serif; font-weight: bold; font-size: 16px; z-index: 99999; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
       
+      /* NUOVO: Stile per il Punteggio */
+      #score-display {
+        position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 99999;
+        color: #D4AF37; font-family: sans-serif; font-weight: bold; font-size: 24px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.9); pointer-events: none;
+      }
+
       #btn-switch-mode { 
         position: absolute; top: 10px; left: 10px; z-index: 99999; 
         background: rgba(0, 0, 0, 0.7); color: white; border: 2px solid #D4AF37; 
@@ -19,21 +26,17 @@
         cursor: pointer; display: none; 
       }
 
-      /* NUOVO: Stile per il tasto Restart */
       #btn-restart { 
         position: absolute; top: 40px; right: 10px; z-index: 99999; 
-        background: rgba(230, 0, 0, 0.7); /* Rosso Campari semi-trasparente */
-        color: white; border: 2px solid #D4AF37; 
-        padding: 8px 15px; border-radius: 10px; font-weight: bold; font-family: sans-serif;
-        cursor: pointer; 
+        background: rgba(230, 0, 0, 0.7); color: white; border: 2px solid #D4AF37; 
+        padding: 8px 15px; border-radius: 10px; font-weight: bold; font-family: sans-serif; cursor: pointer; 
       }
       #btn-restart:active { background: rgba(230, 0, 0, 1); }
 
       #pc-instructions {
         position: absolute; top: 20px; left: 20px; z-index: 99999;
         background: rgba(0, 0, 0, 0.8); color: white; border: 2px solid #D4AF37;
-        padding: 15px; border-radius: 10px; font-family: sans-serif;
-        display: none; 
+        padding: 15px; border-radius: 10px; font-family: sans-serif; display: none; 
       }
       #pc-instructions h3 { margin: 0 0 10px 0; color: #D4AF37; font-size: 18px; }
       #pc-instructions p { margin: 5px 0; font-size: 14px; }
@@ -43,21 +46,29 @@
       .dpad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px; gap: 5px; }
       .dpad .btn { width: 50px; height: 50px; }
       
-      #win-screen {
-        display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      /* SCHERMATE DI GIOCO (START E WIN) */
+      .game-screen {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.9); border: 4px solid #D4AF37; 
-        color: white; padding: 30px; text-align: center; font-family: sans-serif; border-radius: 15px; z-index: 99999; width: 80%;
+        color: white; padding: 30px; text-align: center; font-family: sans-serif; border-radius: 15px; z-index: 99999; width: 80%; max-width: 400px;
       }
-      #win-screen h1 { margin: 0; color: #e60000; font-size: 24px; text-transform: uppercase; }
-      #win-screen p { font-size: 16px; margin-top: 10px; }
+      .game-screen h1 { margin: 0; color: #e60000; font-size: 24px; text-transform: uppercase; }
+      .game-screen p { font-size: 16px; margin-top: 10px; }
+      .action-btn { margin-top:20px; padding:10px 20px; background:white; color:black; border:none; font-weight:bold; cursor: pointer; border-radius: 5px; font-size: 18px;}
+      
+      #win-screen { display: none; }
+      #start-screen { display: block; } /* Visibile di default */
+
       #flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: red; opacity: 0; pointer-events: none; z-index: 99998; transition: opacity 0.2s; }
     </style>
   </head>
 
   <body>
-    <div id="version">ver.018</div>
+    <div id="version">ver.019</div>
     <div id="flash"></div>
     
+    <div id="score-display">PUNTI: 0</div>
+
     <button id="btn-switch-mode"></button>
     <button id="btn-restart">RESTART</button>
 
@@ -67,10 +78,16 @@
       <p><b>Barra Spaziatrice:</b> Salta</p>
     </div>
 
-    <div id="win-screen">
+    <div id="start-screen" class="game-screen">
+      <h1>Campari Kong</h1>
+      <p>Evita le arance e raccogli la bottiglia di Campari in cima!</p>
+      <button id="btn-start" class="action-btn">INIZIA A GIOCARE</button>
+    </div>
+
+    <div id="win-screen" class="game-screen">
       <h1>Campari Recuperato!</h1>
-      <p>Ottimo lavoro.</p>
-      <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:white; color:black; border:none; font-weight:bold; cursor: pointer;">GIOCA ANCORA</button>
+      <p id="final-score">Punteggio Finale: 0</p>
+      <button onclick="location.reload()" class="action-btn">GIOCA ANCORA</button>
     </div>
 
     <div id="ui">
@@ -115,15 +132,23 @@
          pcInst.style.display = 'block'; 
       }
 
-      // NUOVO: Logica del tasto Restart
       document.getElementById('btn-restart').addEventListener('click', () => {
-        // Cerca il componente logico del gioco e forza la funzione resetGame
         const gameWorld = document.getElementById('game-world');
         if (gameWorld && gameWorld.components['donkey-kong-logic']) {
             gameWorld.components['donkey-kong-logic'].resetGame();
         }
       });
 
+      // NUOVO: Logica del Tasto Start
+      document.getElementById('btn-start').addEventListener('click', () => {
+        document.getElementById('start-screen').style.display = 'none';
+        const gameWorld = document.getElementById('game-world');
+        if (gameWorld && gameWorld.components['donkey-kong-logic']) {
+            gameWorld.components['donkey-kong-logic'].gameActive = true;
+        }
+      });
+
+      // AGGIUNTA BOTTIGLIA NEGLI ASSET
       const assetsHTML = `
         <a-assets>
           <img id="player1" src="assets/player (1).png">
@@ -135,9 +160,11 @@
           <img id="spiritello002" src="assets/spiritello002.png">
           <img id="spiritello003" src="assets/spiritello003.png">
           <img id="scaleImg" src="assets/scale.png">
+          <img id="bottleImg" src="assets/bottiglia.png"> 
         </a-assets>
       `;
 
+      // MODIFICA PIATTAFORMA FINALE E BOTTIGLIA
       const gameWorldHTML = `
         <a-entity id="game-world" donkey-kong-logic scale="1.5 1.5 1.5">
           <a-box class="platform" position="0 -0.8 0" rotation="0 0 4" width="1.2" height="0.05" depth="0.1" color="#e60000"></a-box>
@@ -149,10 +176,13 @@
           <a-box class="platform" position="0 0.2 0" rotation="0 0 4" width="1.0" height="0.05" depth="0.1" color="#e60000"></a-box>
           <a-plane class="ladder" material="src: #scaleImg; transparent: true; repeat: 1 3" position="0.3 0.46 -0.06" width="0.15" height="0.48"></a-plane>
 
-          <a-box class="platform" position="-0.2 0.7 0" width="0.6" height="0.05" depth="0.1" color="#e60000"></a-box>
+          <a-box class="platform" position="-0.1 0.7 0" width="0.8" height="0.05" depth="0.1" color="#e60000"></a-box>
 
           <a-image id="player" src="#player1" position="-0.4 -0.6 0.1" width="0.25" height="0.25"></a-image>
+          
           <a-image id="boss" src="#spiritello001" position="-0.4 0.85 0.1" width="0.3" height="0.3"></a-image>
+          
+          <a-image id="bottle" src="#bottleImg" position="-0.1 0.85 0.1" width="0.15" height="0.3"></a-image>
         </a-entity>
       `;
 
