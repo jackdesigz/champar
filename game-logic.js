@@ -102,6 +102,7 @@ AFRAME.registerComponent('donkey-kong-logic', {
   tick(t, dt) {
     if (dt > 100 || !this.gameActive) return;
 
+    // Vittoria toccando la bottiglia
     let dxBottle = this.playerPos.x - (-0.1);
     let dyBottle = this.playerPos.y - (0.85);
     let distBottle = Math.sqrt(dxBottle*dxBottle + dyBottle*dyBottle);
@@ -123,7 +124,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
     }
 
     if (!this.isClimbing) {
-      // VELOCITÀ EROE RIDOTTA (da 0.001 a 0.0007)
       if (this.keys.left) this.playerPos.x -= 0.0007 * dt;
       if (this.keys.right) this.playerPos.x += 0.0007 * dt;
       
@@ -220,9 +220,11 @@ AFRAME.registerComponent('donkey-kong-logic', {
           this.resetGame();
       }
 
-      // NUOVO LOGICA PUNTEGGIO: Se sei sopra l'arancia e ci passi in mezzo, prendi 10 punti!
-      if (!o.passed && Math.abs(o.x - this.playerPos.x) < 0.1 && this.playerPos.y > o.y + 0.1) {
-          o.passed = true; // Segna l'arancia come superata
+      // LA VERA LOGICA DEL SALTO (10 punti se sei sopra l'arancia)
+      let diffX = Math.abs(o.x - this.playerPos.x);
+      let diffY = this.playerPos.y - o.y;
+      if (!o.passed && diffX < 0.15 && diffY > 0 && diffY < 0.3) {
+          o.passed = true;
           this.score += 10;
           if(this.scoreDisplay) this.scoreDisplay.innerText = "PUNTI: " + this.score;
       }
@@ -234,7 +236,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
     el.setAttribute('src', '#orangeImg');
     el.setAttribute('width', 0.12); el.setAttribute('height', 0.12);
     this.world.appendChild(el);
-    // NUOVO: L'arancia nasce con "passed: false" (non ancora saltata)
     this.oranges.push({ el, x: this.path[0].x, y: this.path[0].y, targetIdx: 1, passed: false });
   },
 
@@ -248,7 +249,6 @@ AFRAME.registerComponent('donkey-kong-logic', {
     this.oranges = [];
     this.spawnTimer = 0; 
     
-    // Azzera i punti al game over
     this.score = 0; 
     if(this.scoreDisplay) this.scoreDisplay.innerText = "PUNTI: 0";
   },
